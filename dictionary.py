@@ -1,7 +1,8 @@
 # coding:utf-8
 
-import re
-from janome.tokenizer import Tokenizer
+import os.path
+from collections import defaultdict
+import morph
 
 
 class Dictionary:
@@ -10,34 +11,45 @@ class Dictionary:
     クラス変数名：
     DICT_RANDOM -- ランダム辞書のファイル名
     DICT_PATTERN -- パターン辞書のファイル名
-    TOKENIZER -- 形態素解析器
 
     スタティックメソッド：
+    touch_dics() -- 辞書ファイルにtouch処理を行う
     make_pattern(str) -- パターン辞書読み込み用のヘルパー
     pattern_to_line(pattern) -- パターンハッシュをパターン辞書形式に変換する
-    analyze(str) -- 文字列strを形態素解析する
 
     プロパティ：
     random -- ランダム辞書
     pattern -- パターン辞書
+    template -- テンプレート辞書
     """
 
-    DICT_RANDOM = 'dics/random.txt'
-    DICT_PATTERN = 'dics/pattern.txt'
-    TOKENIZER = Tokenizer()
+    DICT = {'random': 'dics/random.txt',
+            'pattern': 'dics/pattern.txt',
+            'template': 'dics/template.txt',
+            }
 
     def __init__(self):
         """ファイル名から辞書の読み込みを行う．"""
-        with open(Dictionary.DICT_RANDOM, encoding='utf-8') as f:
+        Dictionary.touch_dics()
+        with open(Dictionary.DICT['random'], encoding='utf-8') as f:
             self._random = [x for x in f.read().splitlines() if x]
 
-        with open(Dictionary.DICT_PATTERN, encoding='utf-8') as f:
+        with open(Dictionary.DICT['pattern'], encoding='utf-8') as f:
             self._pattern = [Dictionary.make_pattern(x) for x in f.read().splitlines() if x]
 
-    def study(self, text):
-        """ランダム辞書，パターン辞書をメモリに保存する．"""
+        with open(Dictionary.DICT['template'], encoding='utf-8') as f:
+            self._template = defaultdict(lambda: [], {})  # set dict default value to []
+            for line in f:
+                count, template = line.strip().split('\t')
+                if count and template:
+                    count = int(count)
+                    self._template[count].append(template)
+
+    def study(self, text, parts):
+        """ランダム辞書，パターン辞書，テンプレート辞書をメモリに保存する．"""
         self.study_random(text)
-        self.study_pattern(text, Dictionary.analyze(text))
+        self.study_pattern(text, parts)
+        self.study_template(parts)
 
     def study_random(self, text):
         """ユーザーの発言をランダム辞書に保存する．
@@ -48,7 +60,7 @@ class Dictionary:
     def study_pattern(self, text, parts):
         """ユーザーの発言textを，形態素partsに基づいてパターン辞書に保存する．"""
         for word, part in parts:
-            if self.is_keyword(part):  # 品詞が名詞であれば学習
+            if morph.is_keyword(part):  # 品詞が名詞であれば学習
                 """単語の重複度チェック
                 同じ単語で登録されていれば，パターンを作成する
                 無ければ新しいパターンを作成する"""
@@ -59,13 +71,34 @@ class Dictionary:
                 else:
                     self._pattern.append({'pattern': word, 'phrases': [text]})
 
+    def study_template(self, parts):
+        """形態素のリストpartsを受け取り，
+        名詞のみ'%noun%'に変更した文字列templateをself._templateに追加する．
+        名詞が存在しなかった場合，または同じtemplateが存在する場合は何もしない．
+        """
+        template = ''
+        count = 0
+        for word, part in parts:
+            if morph.is_keyword(part):
+                word = '%noun%'
+                count += 1
+            template += word
+
+        if count > 0 and template not in self._template[count]:
+            self._template[count].append(template)
+
     def save(self):
         """メモリ上の辞書をファイルに保存する．"""
-        with open(Dictionary.DICT_RANDOM, mode='w', encoding='utf-8') as f:
+        with open(Dictionary.DICT['random'], mode='w', encoding='utf-8') as f:
             f.write('\n'.join(self.random))
 
-        with open(Dictionary.DICT_PATTERN, mode='w', encoding='utf-8') as f:
-            f.write('\n'.join([Dictionary.pattern_to_line(p) for p in self._pattern]))
+        with open(Dictionary.DICT['pattern'], mode='w', encoding='utf-8') as f:
+            f.write('\n'.join([Dictionary.pattern_to_line(x) for x in self._pattern]))
+
+        with open(Dictionary.DICT['template'], mode='w', encoding='utf-8') as f:
+            for count, templates in self._template.items():
+                for template in templates:
+                    f.write('{}\t{}\n'.format(count, template))
 
     @staticmethod
     def make_pattern(line):
@@ -85,10 +118,10 @@ class Dictionary:
         """パターン辞書"""
         return self._pattern
 
-    @staticmethod
-    def analyze(text):
-        """文字列textを形態素解析し，[(surface, parts)]の形にして返す．"""
-        return [(t.surface, t.part_of_speech) for t in Dictionary.TOKENIZER.tokenize(text)]
+    @property
+    def template(self):
+        """テンプレート辞書"""
+        return self._template
 
     @staticmethod
     def pattern_to_line(pattern):
@@ -96,6 +129,8 @@ class Dictionary:
         return '{}\t{}'.format(pattern['pattern'], '|'.join(pattern['phrases']))
 
     @staticmethod
-    def is_keyword(part):
-        """品詞パートが学習すべきキーワードであるかどうかを真偽表で返す．"""
-        return bool(re.match(r'名詞,(一般|代名詞|固有名詞|サ変接続|形容動詞語幹)', part))
+    def touch_dics():
+        """辞書ファイルがなければ空のファイルを生成し，あれば何もしない"""
+        for dic in Dictionary.DICT.values():
+            if not os.path.exists(dic):
+                open(dic, 'w').close()
