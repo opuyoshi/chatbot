@@ -12,8 +12,11 @@ python main.py
 ```
 ### markov.py
 マルコフ連鎖による文章の学習・生成を行う．
-外部の文章を学習させると賢くなる(かも)．
+
+外部の文章を学習させると賢くなる．(かも)
+
 青空文庫(https://www.aozora.gr.jp/index_pages/person_all.html )から学習させるときはtext_preprocessing.pyを使うと便利
+
 文章を学習させる方法は以下の通り．
 ```
 python markov.py hoge.txt
