@@ -10,8 +10,8 @@ def build_prompt(unmo):
 
 
 if __name__ == '__main__':
-    print('Unmo System prototype : proto')
-    proto = Unmo('proto')
+    print('Unmo System prototype : girlfriend')
+    proto = Unmo('girlfriend')
     while True:
         text = input('> ')
         if not text:
