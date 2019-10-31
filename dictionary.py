@@ -112,14 +112,14 @@ class Dictionary:
             if not is_keyword(part):  # 品詞が名詞でなければ学習しない
                 continue
 
-                """単語の重複度チェック
-                同じ単語で登録されていれば，パターンを作成する
-                無ければ新しいパターンを作成する"""
-                duplicated = self._find_duplicated_pattern(word)
-                if duplicated and text not in duplicated['phrases']:
-                    duplicated['phrases'].append(text)
-                else:
-                    self._pattern.append({'pattern': word, 'phrases': [text]})
+            """単語の重複度チェック
+            同じ単語で登録されていれば，パターンを作成する
+            無ければ新しいパターンを作成する"""
+            duplicated = self._find_duplicated_pattern(word)
+            if duplicated and text not in duplicated['phrases']:
+                duplicated['phrases'].append(text)
+            else:
+                self._pattern.append({'pattern': word, 'phrases': [text]})
 
     def study_template(self, parts):
         """形態素のリストpartsを受け取り，
@@ -143,7 +143,7 @@ class Dictionary:
 
     def _find_duplicated_pattern(self, word):
         # パターン辞書に名詞wordがあればパターンハッシュを，なければNoneを返す
-        return next((x for x in self._pattern if x['pattern'] == word),None)
+        return next((x for x in self._pattern if x['pattern'] == word), None)
 
     def save(self):
         """メモリ上の辞書をファイルに保存する．"""
