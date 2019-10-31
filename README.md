@@ -1,6 +1,6 @@
 # chatbot
 ## はじめに
-これは http://sandmark.hatenablo.jp/entry/2017/10/07/141339 を基に作成したchatbot(人工無能)である．
+これは http://sandmark.hateblo.jp/entry/2017/10/07/141339 を基に作成したchatbot(人工無能)である．
 
 ## Information
 ### dictionary.py
